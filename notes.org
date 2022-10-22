@@ -1,0 +1,156 @@
+* Notes
+I modified the 'app/controllers/productions_controller.rb' controller file with the 'destroy' method with the 'byebug' console line so that I can look inside of it to determine how to actually write the method itself:
+#+begin_src ruby
+class ProductionsController < ApplicationController
+    # NOTE: This is added to wrap the 'params' hash below:
+    wrap_parameters format: []
+    def index
+        productions = Production.all()
+        render json: productions, status: :ok
+    end
+
+    def show
+        production = Production.find_by(id: params[:id])
+
+        if production
+            render json: production, status: :ok
+        else
+            render json: {error: "production not found"}, status: :not_found
+        end
+    end
+
+    def create
+        # NOTE: I revised this line to instead use 'production_params' from the private method below:
+        # production = Production.create(params)
+        production = Production.create(production_params)
+        render json: production, status: :created
+    end
+
+    def update
+        # find
+        production = Production.find_by(id: params[:id])
+        # update
+        if production
+            production.update(production_params)
+            render json: production, status: :accepted
+        else
+            render json: { error: "Production not found" }, status: :not_found
+        end
+    end
+
+    def destroy
+        byebug
+    end
+
+    private
+
+    # NOTE: This private method ONLY allows these parameter values to come inside these 'production_params'
+    def production_params
+        params.permit(:title, :genre, :budget, :image, :director, :ongoing, :description)
+    end
+end
+#+end_src
+
+NOTE: Yet AGAIN, the video instructor failed to add any statement that they had to add the
+
+I had to modify the 'app/config/routes.rb' routes file to include the ':destroy' action as well:
+#+begin_src ruby
+Rails.application.routes.draw do
+  resources :crew_members
+  # resources :productions, only: [:index, :show]
+  resources :productions, only: [:index, :show, :create, :update, :destroy]
+  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+
+  # Defines the root path route ("/")
+  # root "articles#index"
+end
+
+#+end_src
+
+I then ran the 'rails s' server command and then attempted to make the following 'DELETE' request in Postman:
+- HTTP Verb Used: DELETE
+- URL Used: http://localhost:3000/productions/13
+
+I then confirmed that it was the correct route with the 'byebug' console result:
+#+begin_src bash
+[35, 44] in /Users/samuelbanya/hub/Development/code/phase-4/phase-4-lecture-videos-delete/flatiron-theater/app/controllers/productions_controller.rb
+   35:         end
+   36:     end
+   37:
+   38:     def destroy
+   39:         byebug
+=> 40:     end
+   41:
+   42:     private
+   43:
+   44:     # NOTE: This private method ONLY allows these parameter values to come inside these 'production_params'
+(byebug) params
+#<ActionController::Parameters {"controller"=>"productions", "action"=>"destroy", "id"=>"13"} permitted: false>
+#+end_src
+
+I then revised the 'app/controllers/productions_controller.rb' controller file with the following revisions to the '#destroy' method:
+#+begin_src ruby
+class ProductionsController < ApplicationController
+    # NOTE: This is added to wrap the 'params' hash below:
+    wrap_parameters format: []
+    def index
+        productions = Production.all()
+        render json: productions, status: :ok
+    end
+
+    def show
+        production = Production.find_by(id: params[:id])
+
+        if production
+            render json: production, status: :ok
+        else
+            render json: {error: "production not found"}, status: :not_found
+        end
+    end
+
+    def create
+        # NOTE: I revised this line to instead use 'production_params' from the private method below:
+        # production = Production.create(params)
+        production = Production.create(production_params)
+        render json: production, status: :created
+    end
+
+    def update
+        # find
+        production = Production.find_by(id: params[:id])
+        # update
+        if production
+            production.update(production_params)
+            render json: production, status: :accepted
+        else
+            render json: { error: "Production not found" }, status: :not_found
+        end
+    end
+
+    def destroy
+        production = Production.find_by(id: params[:id])
+        if production
+            production.destroy()
+            head :no_content
+        else
+            render json: { error: "Production not found "}, status: :not_found
+        end
+    end
+
+    private
+
+    # NOTE: This private method ONLY allows these parameter values to come inside these 'production_params'
+    def production_params
+        params.permit(:title, :genre, :budget, :image, :director, :ongoing, :description)
+    end
+end
+#+end_src
+
+I then made the following 'DELETE' request in Postman:
+- HTTP Verb Used: DELETE
+- URL Used: http://localhost:3000/productions/10
+
+Successful empty response received:
+#+begin_src json
+
+#+end_src
